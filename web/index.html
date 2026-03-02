@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="RAI Dashboard — Real-time monitoring for Republic/RAI network nodes, wallet balances, and delegations.">
+  <title>RAI Dashboard — Republic Network Monitor</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* ─── Design Tokens ─────────────────────────────────────────────────── */
+    :root {
+      --bg-primary: #0a0e1a;
+      --bg-secondary: #111827;
+      --bg-card: #1a1f35;
+      --bg-card-hover: #222845;
+      --border-color: rgba(99, 102, 241, 0.15);
+      --border-glow: rgba(99, 102, 241, 0.4);
+
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+
+      --accent-indigo: #6366f1;
+      --accent-violet: #8b5cf6;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-cyan: #06b6d4;
+
+      --gradient-primary: linear-gradient(135deg, #6366f1, #8b5cf6);
+      --gradient-bg: linear-gradient(180deg, #0a0e1a 0%, #111827 100%);
+      --gradient-card: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.05));
+
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+      --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.15);
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+      --transition-fast: 150ms ease;
+      --transition-normal: 250ms ease;
+      --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ─── Reset & Base ──────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--gradient-bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Background Animation ──────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background:
+        radial-gradient(ellipse 600px 600px at 20% 30%, rgba(99, 102, 241, 0.06), transparent),
+        radial-gradient(ellipse 500px 500px at 80% 70%, rgba(139, 92, 246, 0.05), transparent),
+        radial-gradient(ellipse 400px 400px at 50% 50%, rgba(6, 182, 212, 0.03), transparent);
+      animation: bgShift 30s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @keyframes bgShift {
+      0%, 100% { transform: translate(0, 0); }
+      33% { transform: translate(2%, -1%); }
+      66% { transform: translate(-1%, 2%); }
+    }
+
+    /* ─── Layout ────────────────────────────────────────────────────────── */
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+
+    /* ─── Header ────────────────────────────────────────────────────────── */
+    .header {
+      text-align: center;
+      padding: 40px 0 32px;
+    }
+
+    .header__logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    .header__icon {
+      width: 48px;
+      height: 48px;
+      background: var(--gradient-primary);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: var(--shadow-glow);
+    }
+
+    .header__title {
+      font-size: 28px;
+      font-weight: 700;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+    }
+
+    .header__subtitle {
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 400;
+    }
+
+    /* ─── Status Bar ────────────────────────────────────────────────────── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 10px 20px;
+      margin-bottom: 28px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .status-bar__item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .status-dot--error {
+      background: var(--accent-rose);
+      box-shadow: 0 0 8px rgba(244, 63, 94, 0.5);
+      animation: none;
+    }
+
+    .status-dot--syncing {
+      background: var(--accent-amber);
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.85); }
+    }
+
+    /* ─── Cards Grid ────────────────────────────────────────────────────── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      transition: all var(--transition-normal);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--gradient-primary);
+      opacity: 0;
+      transition: opacity var(--transition-normal);
+    }
+
+    .card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-glow);
+      box-shadow: var(--shadow-glow);
+      transform: translateY(-2px);
+    }
+
+    .card:hover::before { opacity: 1; }
+
+    .card__label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .card__value {
+      font-family: var(--font-mono);
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .card__value--small {
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    .card__icon {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 20px;
+      opacity: 0.5;
+    }
+
+    /* ─── Wallet Section ────────────────────────────────────────────────── */
+    .section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      margin-bottom: 28px;
+    }
+
+    .section__title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section__title-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--gradient-primary);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    /* ─── Form ──────────────────────────────────────────────────────────── */
+    .form { display: flex; flex-direction: column; gap: 14px; }
+
+    .form__group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form__label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .form__input {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--text-primary);
+      outline: none;
+      transition: all var(--transition-fast);
+      width: 100%;
+    }
+
+    .form__input::placeholder { color: var(--text-muted); }
+
+    .form__input:focus {
+      border-color: var(--accent-indigo);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    .form__actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn--primary {
+      background: var(--gradient-primary);
+      color: white;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn--primary:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md), var(--shadow-glow);
+    }
+
+    .btn--primary:active { transform: translateY(0); }
+
+    .btn--secondary {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn--secondary:hover {
+      background: rgba(99, 102, 241, 0.08);
+      color: var(--text-primary);
+      border-color: var(--border-glow);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* ─── Results ───────────────────────────────────────────────────────── */
+    .results {
+      margin-top: 20px;
+      display: none;
+    }
+
+    .results.active { display: block; }
+
+    .results__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+    }
+
+    .result-card {
+      background: rgba(99, 102, 241, 0.06);
+      border: 1px solid rgba(99, 102, 241, 0.12);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      animation: fadeSlideIn 0.3s ease;
+    }
+
+    .result-card__label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 6px;
+    }
+
+    .result-card__value {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent-emerald);
+      word-break: break-all;
+    }
+
+    .result-card__value--small {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── Toast / Error ─────────────────────────────────────────────────── */
+    .toast {
+      padding: 14px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      margin-top: 14px;
+      animation: fadeSlideIn 0.3s ease;
+      display: none;
+    }
+
+    .toast.active { display: block; }
+
+    .toast--error {
+      background: rgba(244, 63, 94, 0.1);
+      border: 1px solid rgba(244, 63, 94, 0.2);
+      color: var(--accent-rose);
+    }
+
+    .toast--info {
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.2);
+      color: var(--accent-cyan);
+    }
+
+    /* ─── Footer ────────────────────────────────────────────────────────── */
+    .footer {
+      text-align: center;
+      padding: 32px 0 16px;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .footer a {
+      color: var(--accent-indigo);
+      text-decoration: none;
+    }
+
+    /* ─── Spinner ────────────────────────────────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Loading Skeleton ──────────────────────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg,
+        var(--bg-card) 25%,
+        rgba(99, 102, 241, 0.08) 50%,
+        var(--bg-card) 75%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+      border-radius: var(--radius-sm);
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    /* ─── Responsive ────────────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .container { padding: 16px 12px 40px; }
+      .header { padding: 24px 0 20px; }
+      .header__title { font-size: 22px; }
+      .card__value { font-size: 22px; }
+      .status-bar { flex-wrap: wrap; gap: 12px; }
+      .form__actions { flex-direction: column; }
+      .btn { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header__logo">
+        <div class="header__icon">⛓</div>
+        <h1 class="header__title">RAI Dashboard</h1>
+      </div>
+      <p class="header__subtitle">Republic Network — Real-time Node Monitor</p>
+    </header>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-bar__item">
+        <div id="statusDot" class="status-dot"></div>
+        <span id="statusText">Connecting...</span>
+      </div>
+      <div class="status-bar__item">
+        🔄 Auto-refresh: <span id="refreshCountdown">30</span>s
+      </div>
+      <div class="status-bar__item">
+        <span id="lastUpdate">—</span>
+      </div>
+    </div>
+
+    <!-- Node Stats Cards -->
+    <div class="grid">
+      <div class="card" id="cardHeight">
+        <span class="card__icon">📦</span>
+        <div class="card__label">Block Height</div>
+        <div class="card__value" id="blockHeight">—</div>
+      </div>
+      <div class="card" id="cardTime">
+        <span class="card__icon">🕐</span>
+        <div class="card__label">Block Time</div>
+        <div class="card__value" id="blockTime" style="font-size:16px;">—</div>
+      </div>
+      <div class="card" id="cardPeers">
+        <span class="card__icon">🌐</span>
+        <div class="card__label">Connected Peers</div>
+        <div class="card__value" id="peerCount">—</div>
+      </div>
+      <div class="card" id="cardSync">
+        <span class="card__icon">🔗</span>
+        <div class="card__label">Sync Status</div>
+        <div class="card__value" id="syncStatus">—</div>
+      </div>
+    </div>
+
+    <!-- Wallet Query Section -->
+    <section class="section">
+      <h2 class="section__title">
+        <div class="section__title-icon">💰</div>
+        Wallet Query
+      </h2>
+      <form class="form" id="walletForm">
+        <div class="form__group">
+          <label class="form__label" for="walletAddress">Wallet Address</label>
+          <input
+            class="form__input"
+            type="text"
+            id="walletAddress"
+            name="walletAddress"
+            placeholder="rai1..."
+            autocomplete="off"
+            spellcheck="false"
+            required
+          >
+        </div>
+        <div class="form__group">
+          <label class="form__label" for="valoperAddress">Validator Operator Address <span style="color:var(--text-muted)">(optional)</span></label>
+          <input
+            class="form__input"
+            type="text"
+            id="valoperAddress"
+            name="valoperAddress"
+            placeholder="raivaloper1... (leave empty for balance only)"
+            autocomplete="off"
+            spellcheck="false"
+          >
+        </div>
+        <div class="form__actions">
+          <button type="submit" class="btn btn--primary" id="queryBtn">
+            🔍 Query Wallet
+          </button>
+          <button type="button" class="btn btn--secondary" id="clearBtn">
+            ✕ Clear
+          </button>
+        </div>
+      </form>
+
+      <!-- Results -->
+      <div class="results" id="walletResults">
+        <div class="results__grid" id="resultsGrid"></div>
+      </div>
+
+      <!-- Error Toast -->
+      <div class="toast toast--error" id="errorToast"></div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      RAI Dashboard v1.0.0 — Read-only, security-hardened Republic chain monitor<br>
+      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a> · MIT License
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+# ─── RAI Dashboard — Caddy Reverse Proxy ─────────────────────────────────────
+#
+# This Caddyfile reverse proxies the dashboard app with:
+#   - Automatic TLS (Let's Encrypt)
+#   - Basic authentication
+#   - Security headers
+#   - Rate limiting suggestion
+#
+# Usage:
+#   1. Replace "dashboard.example.com" with your actual domain.
+#   2. Generate a password hash:
+#        caddy hash-password --plaintext 'YOUR_PASSWORD'
+#   3. Replace the placeholder hash below.
+#   4. Run: caddy run --config Caddyfile
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
+dashboard.example.com {
+	# ── TLS ──────────────────────────────────────────────────────────────
+	# Caddy automatically obtains and renews TLS certificates via ACME.
+	# To use a custom cert, uncomment below:
+	# tls /path/to/cert.pem /path/to/key.pem
+
+	# ── Basic Authentication ─────────────────────────────────────────────
+	# Protect the entire site with basic auth.
+	#
+	# Generate hash:  caddy hash-password --plaintext 'YOUR_SECURE_PASSWORD'
+	# Replace the hash below with the output.
+	basicauth {
+		admin $2a$14$REPLACE_WITH_YOUR_BCRYPT_HASH_HERE
+	}
+
+	# ── Security Headers ─────────────────────────────────────────────────
+	header {
+		# HSTS
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+
+		# Prevent clickjacking
+		X-Frame-Options "DENY"
+
+		# Prevent MIME type sniffing
+		X-Content-Type-Options "nosniff"
+
+		# Referrer policy
+		Referrer-Policy "strict-origin-when-cross-origin"
+
+		# Permissions policy — disable unnecessary features
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+
+		# Remove server header
+		-Server
+	}
+
+	# ── Rate Limiting ────────────────────────────────────────────────────
+	# Caddy v2 does not have built-in rate limiting.
+	# Options:
+	#   1. Use caddy-rate-limit plugin: https://github.com/mholt/caddy-ratelimit
+	#      After installing the plugin, add:
+	#        rate_limit {remote.ip} 100r/m
+	#
+	#   2. Use Cloudflare as a CDN/WAF in front of Caddy:
+	#      - Enable "Under Attack Mode" or WAF rules
+	#      - Set rate limiting rules in the Cloudflare dashboard
+	#
+	#   3. The Express app itself already has express-rate-limit as a fallback.
+
+	# ── Reverse Proxy ────────────────────────────────────────────────────
+	reverse_proxy 127.0.0.1:3001 {
+		# Health check
+		health_uri /api/node/status
+		health_interval 30s
+		health_timeout 5s
+		health_status 2xx
+
+		# Proxy headers
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	# ── Logging ──────────────────────────────────────────────────────────
+	log {
+		output file /var/log/caddy/rai-dashboard.log {
+			roll_size 10mb
+			roll_keep 5
+		}
+		format json
+	}
+}
