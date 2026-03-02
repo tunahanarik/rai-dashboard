@@ -59,7 +59,9 @@ RAI Dashboard provides a lightweight, self-hosted web interface to monitor your 
 ### Prerequisites
 - Node.js 22+
 - Republic node running locally with RPC on port 43657
-- `republicd` CLI available in PATH
+- **Republic REST API enabled on localhost** (default in this server setup: `127.0.0.1:43317`)
+  - In `app.toml` under `[api]`, set `enable = true` and keep it bound to localhost.
+- `republicd` CLI available in PATH *(optional; wallet queries use REST in production container mode)*
 
 ### Development
 
