@@ -31,13 +31,19 @@ RAI Dashboard provides a lightweight, self-hosted web interface to monitor your 
 ## 🔒 Security
 
 - **Localhost-only binding** — App never exposes ports to public network directly
-- **Caddy reverse proxy** — TLS termination + Basic Auth + security headers
+- **Reverse proxy recommended** — TLS termination + Basic Auth + security headers
 - **Helmet** — HTTP security headers (CSP, HSTS, etc.)
 - **Rate limiting** — Configurable request rate limits per IP
 - **Input validation** — Bech32 address format validation (rai1... / raivaloper1...)
-- **SSRF prevention** — No user-supplied RPC URLs; hardcoded localhost only
+- **SSRF prevention** — No user-supplied RPC/REST URLs; localhost-only targets
 - **No file uploads** — Request body limited to 8KB
 - **Docker hardening** — Non-root user, read-only filesystem, dropped capabilities
+
+### Production notes
+
+- Keep the app bound to **127.0.0.1**.
+- Put **Caddy/Nginx** in front with TLS + Basic Auth.
+- Consider Cloudflare for additional DDoS/rate limiting.
 
 ## 📡 API Endpoints
 

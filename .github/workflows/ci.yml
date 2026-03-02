@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck / Build
+        run: npm run build
+
+      - name: Smoke test (start + ping)
+        run: |
+          node dist/server.js &
+          PID=$!
+          sleep 1
+          node -e "fetch('http://127.0.0.1:3000/api/node/status').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+          kill $PID
