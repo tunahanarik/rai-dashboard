@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-package-lock.json
+# NOTE: package-lock.json is intentionally tracked for reproducible installs
 
 # Build output
 dist/

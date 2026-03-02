@@ -7,6 +7,11 @@ const router = Router();
 
 // ─── Node Status ──────────────────────────────────────────────────────────────
 
+router.get('/healthz', (_req: Request, res: Response) => {
+    // Health endpoint for CI/smoke tests. Does not require RPC.
+    res.json({ ok: true });
+});
+
 router.get('/node/status', async (_req: Request, res: Response) => {
     try {
         const status = await getNodeStatus();
